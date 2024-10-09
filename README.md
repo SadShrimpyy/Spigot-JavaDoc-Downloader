@@ -16,16 +16,25 @@ This tool streamlines the process of obtaining the JavaDocs from the [Sonatype N
 
 ## Installation
 
+### Clone the repository, compile, and run
 To download locally all the javadocs, simply run all the commands in the correct order into your terminal.
 
 After downloading all the javadocs your default browser will open a new window to the index.html (```~\Spigot-JavaDoc-Downloader\javadocs```).
 
-### Windows & Linux
     git clone https://github.com/SadShrimpyy/Spigot-JavaDoc-Downloader.git
     mkdir Spigot-JavaDoc-Downloader/build
     cd Spigot-JavaDoc-Downloader/src
     javac -d ../build Main.java && cd .. && java -cp build Main
 
+### Download the .jar and run
+To download locally all the javadocs, simply download the [latest release](https://github.com/SadShrimpyy/Spigot-JavaDoc-Downloader/releases/download/v1.0/spigot-api-javadocs-downloader-v1.0.jar) and execute the jar with ```java -jar spigot-api-javadocs-downloader-v1.0.jar```.
+
+After downloading all the javadocs your default browser will open a new window to the index.html (```~\javadocs```).
+
+    git clone https://github.com/SadShrimpyy/Spigot-JavaDoc-Downloader.git
+    mkdir Spigot-JavaDoc-Downloader/build
+    cd Spigot-JavaDoc-Downloader/src
+    javac -d ../build Main.java && cd .. && java -cp build Main
 
 ## TODO List / Known issues
 1. As now if you run more than once, this tool will download again all the javadocs. If you have already, just skip!
