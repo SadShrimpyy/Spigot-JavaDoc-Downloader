@@ -1,5 +1,5 @@
 import utils.Desktop;
-import connection.Downloader;
+import connection.NetworkUtility;
 import utils.FILES;
 import connection.HTML;
 import utils.JarToDir;
@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Main {
 
     public static void main(String[] args) {
-        Downloader downloader = new Downloader();
-        if (!downloader.downloadPage(URLS.METADATA.get(), FILES.MAVEN_METADATA_XML.get())) return;
+        NetworkUtility networkUtility = new NetworkUtility();
+        if (!networkUtility.fetchFileFromUrl(URLS.METADATA.get(), FILES.MAVEN_METADATA_XML.get())) return;
 
         LinkedList<String> versions = getVersions(FILES.MAVEN_METADATA_XML.get());
         if (versions == null) return;
@@ -23,9 +23,9 @@ public class Main {
         String[][] mat = new String[2][versions.size()];
         AtomicInteger counter = new AtomicInteger();
         versions.forEach(snapshotVersion -> {
-            downloader.downloadPage(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
+            networkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
             String timestampVersion = parseVersionFromHtmlTag(snapshotVersion);
-            downloader.downloadJar(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
+            networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
             checkAndDelete(snapshotVersion + ".html");
             jarToDir.extract(timestampVersion + "-javadoc.jar", "javadocs\\" + timestampVersion + "-javadoc", snapshotVersion);
             checkAndDelete(timestampVersion + "-javadoc.jar");
