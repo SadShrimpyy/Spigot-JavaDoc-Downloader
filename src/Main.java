@@ -35,9 +35,23 @@ public class Main {
             updateHtmlComponent(snapshotVersion, timestampVersion);
         });
         updateHtmlComponent(mat, counter.get());
+        createStylesheet();
 
         Desktop desktop = new Desktop();
         desktop.openHtml();
+    }
+
+    private static void createStylesheet() {
+        File stylesheetFile = new File(FILES.JAVADOCS_STYLESHEET_CSS.get());
+        try {
+            if (!stylesheetFile.exists()) stylesheetFile.createNewFile();
+            FileWriter writer = new FileWriter(stylesheetFile);
+            writer.write(HTML.STYLESHEET_CSS.get());
+            writer.close();
+            System.out.println("Created stylesheet.css");
+        } catch (IOException e) {
+            System.out.println("Error during the creation of stylesheet.css: " + e.getMessage());
+        }
     }
 
     private static void updateHtmlComponent(String snapshotVersion, String timestampVersion) {
@@ -66,7 +80,8 @@ public class Main {
             for (int i = totVersions - 1; i >= 0 ; i--) {
                 writer.append(HTML.VERSION_COMPONENT.get()
                         .replace("%tag-timestamp-version%", mat[1][i])
-                        .replace("%tag-snapshot-version%", mat[0][i]));
+                        .replace("%tag-snapshot-version%", mat[0][i])
+                        .replace("%tag-element-list%", Integer.toString(totVersions - i)));
             }
             writer.append(HTML.FOOT_COMPONENT.get());
             writer.close();
