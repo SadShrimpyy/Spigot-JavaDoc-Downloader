@@ -32,3 +32,4 @@ bin/
 ### Output Javadocs ###
 javadocs/
 build/
+*.iml
