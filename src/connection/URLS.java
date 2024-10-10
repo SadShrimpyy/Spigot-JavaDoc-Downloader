@@ -1,4 +1,4 @@
-package utils;
+package connection;
 
 public enum URLS {
     METADATA("https://hub.spigotmc.org/nexus/repository/public/org/spigotmc/spigot-api/maven-metadata.xml"),
