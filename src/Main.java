@@ -1,9 +1,10 @@
+import utils.Desktop;
+import connection.Downloader;
 import utils.FILES;
-import utils.HTML;
+import connection.HTML;
 import utils.JarToDir;
-import utils.URLS;
+import connection.URLS;
 
-import java.awt.*;
 import java.io.*;
 import java.util.LinkedList;
 import java.util.Scanner;
@@ -34,20 +35,9 @@ public class Main {
             updateHtmlComponent(snapshotVersion, timestampVersion);
         });
         updateHtmlComponent(mat, counter.get());
-        openHtml();
-    }
 
-    private static void openHtml() {
-        try {
-            File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().open(indexHTML);
-            } else {
-                System.out.println("Desktop is not supported on this platform.");
-            }
-        } catch (IOException e) {
-            System.out.println("Error opening index.html: " + e.getMessage());
-        }
+        Desktop desktop = new Desktop();
+        desktop.openHtml();
     }
 
     private static void updateHtmlComponent(String snapshotVersion, String timestampVersion) {
