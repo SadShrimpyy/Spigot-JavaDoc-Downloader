@@ -1,5 +1,7 @@
 package connection;
 
+import utils.Log;
+
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
@@ -19,10 +21,10 @@ public class NetworkUtility {
             }
             reader.close();
             writer.close();
-            System.out.println("Successfully downloaded " + targetFile + " from " + remoteUrl);
+            Log.logInfo("Successfully downloaded " + targetFile + " from " + remoteUrl);
             return true;
         } catch (IOException e) {
-            System.out.println("Error while downloading from " + remoteUrl + ": " + e.getMessage());
+            Log.logError(" Failed to download " + targetFile + " from " + remoteUrl + ": " + e.getMessage());
             return false;
         }
     }
@@ -35,7 +37,7 @@ public class NetworkUtility {
                 Files.copy(in, Path.of(downloadJar), StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (Exception e) {
-            System.out.println("Error downloading " + remoteUrl + ": " + e.getMessage());
+            Log.logError(" Failed to download " + downloadJar + " from " + remoteUrl + ": " + e.getMessage());
         }
     }
 

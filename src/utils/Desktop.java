@@ -3,18 +3,21 @@ package utils;
 import java.io.File;
 import java.io.IOException;
 
+import static java.awt.Desktop.getDesktop;
+import static java.awt.Desktop.isDesktopSupported;
+
 public class Desktop {
 
     public void openHtml() {
+        File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
         try {
-            File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
-            if (java.awt.Desktop.isDesktopSupported()) {
-                java.awt.Desktop.getDesktop().open(indexHTML);
+            if (isDesktopSupported()) {
+                getDesktop().open(indexHTML);
             } else {
-                System.out.println("Desktop is not supported on this platform.");
+                Log.logError("Failed to open " + indexHTML.getName() + ": desktop is not supported on this platform.");
             }
         } catch (IOException e) {
-            System.out.println("Error opening index.html: " + e.getMessage());
+            Log.logInfo("Failed to open " + indexHTML.getName() + ": " + e.getMessage());
         }
     }
 
