@@ -12,6 +12,7 @@ public class Log {
 
     public static void logError(String... log) {
         System.out.println("[ERROR] " + String.join(" ", log));
+        System.exit(1);
     }
 
     public static void auto(String... log) {

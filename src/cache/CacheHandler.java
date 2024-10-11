@@ -91,7 +91,7 @@ public class CacheHandler {
             writer.append(HTML.FOOT_COMPONENT.get());
             writer.close();
         } catch (IOException e) {
-            Log.logError("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
+            Log.logWarn("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
         }
     }
 

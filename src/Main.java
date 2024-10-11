@@ -25,12 +25,11 @@ public class Main {
         }
 
         if (fetchAllJavadocs) {
-            Log.logError("Couldn't find cache file, fetching all javadocs");
+            Log.logWarn("Couldn't find cache file, fetching all javadocs");
             String log = networkUtility.fetchFileFromUrl(URLS.METADATA.get(), FILES.MAVEN_METADATA_XML.get())
                 ? "Successfully downloaded " + FILES.MAVEN_METADATA_XML.get() + " from " + URLS.METADATA.get()
                 : "Failed to download " + FILES.MAVEN_METADATA_XML.get() + " from " + URLS.METADATA.get();
             Log.auto(log);
-            //TODO: Exit
         }
 
         //TODO: From here is all wrong
@@ -90,7 +89,7 @@ public class Main {
             writer.close();
             Log.logInfo("Updated " + indexHTML.getName() + " with new javadoc version: " + snapshotVersion);
         } catch (IOException e) {
-            Log.logError("Failed to update " + indexHTML.getName() + " with new javadoc version " + snapshotVersion + ": " + e.getMessage());
+            Log.logWarn("Failed to update " + indexHTML.getName() + " with new javadoc version " + snapshotVersion + ": " + e.getMessage());
         }
     }
 
@@ -110,7 +109,7 @@ public class Main {
             writer.append(HTML.FOOT_COMPONENT.get());
             writer.close();
         } catch (IOException e) {
-            Log.logError("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
+            Log.logWarn("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
         }
     }
 
