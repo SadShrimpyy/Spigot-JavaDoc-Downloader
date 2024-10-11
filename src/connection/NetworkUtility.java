@@ -24,7 +24,7 @@ public class NetworkUtility {
             Log.logInfo("Successfully downloaded " + targetFile + " from " + remoteUrl);
             return true;
         } catch (IOException e) {
-            Log.logError(" Failed to download " + targetFile + " from " + remoteUrl + ": " + e.getMessage());
+            Log.logError("Failed to download " + targetFile + " from " + remoteUrl + ": " + e.getMessage());
             return false;
         }
     }
@@ -37,7 +37,7 @@ public class NetworkUtility {
                 Files.copy(in, Path.of(downloadJar), StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (Exception e) {
-            Log.logError(" Failed to download " + downloadJar + " from " + remoteUrl + ": " + e.getMessage());
+            Log.logError("Failed to download " + downloadJar + " from " + remoteUrl + ": " + e.getMessage());
         }
     }
 
