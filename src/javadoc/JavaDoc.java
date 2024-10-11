@@ -1,11 +1,17 @@
 package javadoc;
 
+import cache.CacheHandler;
+import cache.VTag;
+import connection.HTML;
 import connection.NetworkUtility;
 import connection.URLS;
+import utils.Desktop;
+import utils.FILES;
 import utils.FileHandler;
 import utils.Log;
 
 import java.io.*;
+import java.util.LinkedList;
 import java.util.zip.*;
 
 public class JavaDoc {
@@ -59,4 +65,61 @@ public class JavaDoc {
         return URLS.JAVADOC.get().replace("%tag-version-timestamp%", versionTimestamp).replace("%tag-version-snapshot%", versionSnapshot);
     }
 
+    public void generateAllJavadoc() {
+        LinkedList<String> versions = FileHandler.getVersions(FILES.MAVEN_METADATA_XML.get());
+        if (versions == null)
+            return;
+
+        versions.forEach(snapshotVersion -> {
+            networkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
+            String timestampVersion = FileHandler.parseVersionFromHtmlTag(snapshotVersion);
+            networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
+            FileHandler.checkAndDelete(snapshotVersion + ".html");
+            extractJavadoc(timestampVersion + "-javadoc.jar", "javadocs\\" + timestampVersion + "-javadoc", snapshotVersion);
+            FileHandler.checkAndDelete(timestampVersion + "-javadoc.jar");
+            CacheHandler.clearVersions(versions.size());
+            CacheHandler.addSnapshotVersion(snapshotVersion);
+            CacheHandler.addTimestampVersion(timestampVersion);
+        });
+        updateHtmlComponent(CacheHandler.getVersions(), CacheHandler.getTotalCachedVersions());
+        CacheHandler.writeCacheToFile();
+        createStylesheet();
+
+        Desktop desktop = new Desktop();
+        desktop.openHtml();
+    }
+
+    private static void createStylesheet() {
+        File stylesheetFile = new File(FILES.JAVADOCS_STYLESHEET_CSS.get());
+        try {
+            if (!stylesheetFile.exists())
+                stylesheetFile.createNewFile();
+            FileWriter writer = new FileWriter(stylesheetFile);
+            writer.write(HTML.STYLESHEET_CSS.get());
+            writer.close();
+            Log.logInfo("Created stylesheet.css");
+        } catch (IOException e) {
+            Log.logError("Failed to create " + stylesheetFile.getName() + e.getMessage());
+        }
+    }
+
+    private static void updateHtmlComponent(String[][] mat, int totVersions) {
+        File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
+        try {
+            if (!indexHTML.exists())
+                indexHTML.createNewFile();
+            FileWriter writer = new FileWriter(indexHTML);
+            writer.write(HTML.INDEX_COMPONENT.get());
+            for (int i = totVersions - 1; i >= 0 ; i--) {
+                writer.append(HTML.VERSION_COMPONENT.get()
+                        .replace("%tag-timestamp-version%", mat[i][VTag.TIMESTAMP.get()])
+                        .replace("%tag-snapshot-version%", mat[i][VTag.SNAPSHOT.get()])
+                        .replace("%tag-element-list%", Integer.toString(totVersions - i)));
+            }
+            writer.append(HTML.FOOT_COMPONENT.get());
+            writer.close();
+        } catch (IOException e) {
+            Log.logWarn("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
+        }
+    }
 }

@@ -14,27 +14,28 @@ public class CacheHandler {
     private static final JavaDoc javadoc = new JavaDoc();
     private static final File cacheFile = new File(FILES.CACHE_FILE_TXT.get());
     private static String[][] versions;
-    private static String[] cachedVersions;
+    private static String[] scannedVersions;
+    private static int totalCachedVersions;
 
     public CacheHandler() {
         try {
-            cachedVersions = new Scanner(cacheFile)
+            scannedVersions = new Scanner(cacheFile)
                     .nextLine()
                     .split(";");
         } catch (FileNotFoundException e) {
-            cachedVersions = null;
+            scannedVersions = null;
         }
     }
 
-    public static void persistCacheData(String[][] mat, int totVersions) {
+    public static void writeCacheToFile() {
         try {
             if (!cacheFile.exists())
                 cacheFile.createNewFile();
             FileWriter writer = new FileWriter(cacheFile);
-            for (int i = 0; i < totVersions ; i++) {
-                writer.append(mat[i][VTag.SNAPSHOT.get()])
+            for (int i = 0; i < totalCachedVersions ; i++) {
+                writer.append(versions[i][VTag.SNAPSHOT.get()])
                         .append(",")
-                        .append(mat[i][VTag.TIMESTAMP.get()])
+                        .append(versions[i][VTag.TIMESTAMP.get()])
                         .append(";");
             }
         } catch (IOException e) {
@@ -45,19 +46,19 @@ public class CacheHandler {
     }
 
     public static boolean checkCachedJavadocs() {
-        if (cachedVersions == null) {
+        if (scannedVersions == null) {
             Log.logWarn("Failed to read " + FILES.CACHE_FILE_TXT.get() + ", cache invalidated");
             FileHandler.checkAndDelete(FILES.CACHE_FILE_TXT.get());
             return true;
         }
 
         Log.logInfo("Cache file exists, reading to avoid fetch existing javadocs...");
-        versions = new String[cachedVersions.length][2];
+        versions = new String[scannedVersions.length][2];
         //ENDTODO
-        boolean[] exists = new boolean[cachedVersions.length];
-        for (int i = 0; i < cachedVersions.length; i++) {
-            versions[i][VTag.SNAPSHOT.get()] = cachedVersions[i].split(",")[VTag.SNAPSHOT.get()];
-            versions[i][VTag.TIMESTAMP.get()] = cachedVersions[i].split(",")[VTag.TIMESTAMP.get()];
+        boolean[] exists = new boolean[scannedVersions.length];
+        for (int i = 0; i < scannedVersions.length; i++) {
+            versions[i][VTag.SNAPSHOT.get()] = scannedVersions[i].split(",")[VTag.SNAPSHOT.get()];
+            versions[i][VTag.TIMESTAMP.get()] = scannedVersions[i].split(",")[VTag.TIMESTAMP.get()];
 
             Log.logInfo("Found cached version: " + versions[i][VTag.SNAPSHOT.get()] + ", check if javadocs exists...");
             exists[i] = FileHandler.exists(versions[i][VTag.TIMESTAMP.get()]);
@@ -82,11 +83,11 @@ public class CacheHandler {
                 indexHTML.createNewFile();
             FileWriter writer = new FileWriter(indexHTML);
             writer.write(HTML.INDEX_COMPONENT.get());
-            for (int i = cachedVersions.length - 1; i >= 0 ; i--) {
+            for (int i = scannedVersions.length - 1; i >= 0 ; i--) {
                 writer.append(HTML.VERSION_COMPONENT.get()
                         .replace("%tag-timestamp-version%", versions[i][VTag.TIMESTAMP.get()])
                         .replace("%tag-snapshot-version%", versions[i][VTag.SNAPSHOT.get()])
-                        .replace("%tag-element-list%", Integer.toString(cachedVersions.length - i)));
+                        .replace("%tag-element-list%", Integer.toString(scannedVersions.length - i)));
             }
             writer.append(HTML.FOOT_COMPONENT.get());
             writer.close();
@@ -97,5 +98,28 @@ public class CacheHandler {
 
     public static boolean cacheExists() {
         return cacheFile.exists();
+    }
+
+    public static void clearVersions(int metadataVersions) {
+        totalCachedVersions = 0;
+        versions = new String[metadataVersions][2];
+    }
+
+    public static void addSnapshotVersion(String snapshotVersion) {
+        versions[totalCachedVersions][VTag.SNAPSHOT.get()] = snapshotVersion;
+        totalCachedVersions++;
+    }
+
+    public static void addTimestampVersion(String timestampVersion) {
+        versions[totalCachedVersions][VTag.TIMESTAMP.get()] = timestampVersion;
+        totalCachedVersions++;
+    }
+
+    public static String[][] getVersions() {
+        return versions;
+    }
+
+    public static int getTotalCachedVersions() {
+        return totalCachedVersions;
     }
 }
