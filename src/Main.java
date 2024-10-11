@@ -1,40 +1,59 @@
+import cache.CacheHandler;
+import cache.VTag;
 import utils.Desktop;
 import connection.NetworkUtility;
 import utils.FILES;
 import connection.HTML;
-import utils.JarToDir;
+import javadoc.JavaDoc;
 import connection.URLS;
+import utils.FileHandler;
+import utils.Log;
 
 import java.io.*;
 import java.util.LinkedList;
-import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
 
     public static void main(String[] args) {
         NetworkUtility networkUtility = new NetworkUtility();
-        if (!networkUtility.fetchFileFromUrl(URLS.METADATA.get(), FILES.MAVEN_METADATA_XML.get())) return;
+        JavaDoc javadoc = new JavaDoc();
+        boolean fetchJavadocs = true;
 
-        LinkedList<String> versions = getVersions(FILES.MAVEN_METADATA_XML.get());
+        if (CacheHandler.exists()) {
+            fetchJavadocs = CacheHandler.fetchFromFile();
+        }
+
+        if (fetchJavadocs) {
+            Log.logError("Cache file didn't exists, fetching all javadocs");
+            if (!networkUtility.fetchFileFromUrl(URLS.METADATA.get(), FILES.MAVEN_METADATA_XML.get())) {
+                return;
+            }
+        }
+
+        //TODO: From here is all wrong
+        LinkedList<String> versions = FileHandler.getVersions(FILES.MAVEN_METADATA_XML.get());
         if (versions == null) return;
 
-        JarToDir jarToDir = new JarToDir();
+        JavaDoc jarToDir = new JavaDoc();
         String[][] mat = new String[2][versions.size()];
         AtomicInteger counter = new AtomicInteger();
+
         versions.forEach(snapshotVersion -> {
-            networkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
-            String timestampVersion = parseVersionFromHtmlTag(snapshotVersion);
-            networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
-            checkAndDelete(snapshotVersion + ".html");
-            jarToDir.extract(timestampVersion + "-javadoc.jar", "javadocs\\" + timestampVersion + "-javadoc", snapshotVersion);
-            checkAndDelete(timestampVersion + "-javadoc.jar");
             int i = counter.getAndIncrement();
-            mat[0][i] = snapshotVersion;
-            mat[1][i] = timestampVersion;
+            networkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
+            String timestampVersion = FileHandler.parseVersionFromHtmlTag(snapshotVersion);
+            networkUtility.fetchJarFromUrl(javadoc.composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
+            FileHandler.checkAndDelete(snapshotVersion + ".html");
+            jarToDir.extractJavadoc(timestampVersion + "-javadoc.jar", "javadocs\\" + timestampVersion + "-javadoc", snapshotVersion);
+            FileHandler.checkAndDelete(timestampVersion + "-javadoc.jar");
+            mat[i][VTag.SNAPSHOT.get()] = snapshotVersion;
+            mat[i][VTag.TIMESTAMP.get()] = timestampVersion;
             updateHtmlComponent(snapshotVersion, timestampVersion);
         });
+        // TODO: Get mat from CacheHandler
         updateHtmlComponent(mat, counter.get());
+        CacheHandler.persistCacheData(mat, counter.get());
         createStylesheet();
 
         Desktop desktop = new Desktop();
@@ -44,20 +63,22 @@ public class Main {
     private static void createStylesheet() {
         File stylesheetFile = new File(FILES.JAVADOCS_STYLESHEET_CSS.get());
         try {
-            if (!stylesheetFile.exists()) stylesheetFile.createNewFile();
+            if (!stylesheetFile.exists())
+                stylesheetFile.createNewFile();
             FileWriter writer = new FileWriter(stylesheetFile);
             writer.write(HTML.STYLESHEET_CSS.get());
             writer.close();
-            System.out.println("Created stylesheet.css");
+            Log.logInfo("Created stylesheet.css");
         } catch (IOException e) {
-            System.out.println("Error during the creation of stylesheet.css: " + e.getMessage());
+            Log.logError("Failed to create " + stylesheetFile.getName() + e.getMessage());
         }
     }
 
     private static void updateHtmlComponent(String snapshotVersion, String timestampVersion) {
         File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
         try {
-            if (!indexHTML.exists()) indexHTML.createNewFile();
+            if (!indexHTML.exists())
+                indexHTML.createNewFile();
             FileWriter writer = new FileWriter(indexHTML);
             writer.write(HTML.INDEX_COMPONENT.get());
             writer.append(HTML.VERSION_COMPONENT.get()
@@ -65,85 +86,30 @@ public class Main {
                     .replace("%tag-snapshot-version%", snapshotVersion));
             writer.append(HTML.FOOT_COMPONENT.get());
             writer.close();
-            System.out.println("Updated index.html with new javadoc version: " + snapshotVersion);
+            Log.logInfo("Updated " + indexHTML.getName() + " with new javadoc version: " + snapshotVersion);
         } catch (IOException e) {
-            System.out.println("Error updating index.html with new javadoc version " + snapshotVersion + ": " + e.getMessage());
+            Log.logError("Failed to update " + indexHTML.getName() + " with new javadoc version " + snapshotVersion + ": " + e.getMessage());
         }
     }
 
     private static void updateHtmlComponent(String[][] mat, int totVersions) {
         File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
         try {
-            if (!indexHTML.exists()) indexHTML.createNewFile();
+            if (!indexHTML.exists())
+                indexHTML.createNewFile();
             FileWriter writer = new FileWriter(indexHTML);
             writer.write(HTML.INDEX_COMPONENT.get());
             for (int i = totVersions - 1; i >= 0 ; i--) {
                 writer.append(HTML.VERSION_COMPONENT.get()
-                        .replace("%tag-timestamp-version%", mat[1][i])
-                        .replace("%tag-snapshot-version%", mat[0][i])
+                        .replace("%tag-timestamp-version%", mat[i][VTag.TIMESTAMP.get()])
+                        .replace("%tag-snapshot-version%", mat[i][VTag.SNAPSHOT.get()])
                         .replace("%tag-element-list%", Integer.toString(totVersions - i)));
             }
             writer.append(HTML.FOOT_COMPONENT.get());
             writer.close();
         } catch (IOException e) {
-            System.out.println("Error updating index.html: " + e.getMessage());
+            Log.logError("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
         }
     }
 
-    private static void checkAndDelete(String fileName) {
-        File f = new File(fileName);
-        if (f.exists()) f.delete();
-    }
-
-    private static String parseVersionFromHtmlTag(String v) {
-        return getFileContent(v + ".html")
-                .replaceAll("(.*)(<a href=\")(%tag-version%-\\d{8}.\\d{6}-\\d{1,3})(/\\\">)(.*)"
-                                .replace("%tag-version%", v.replace("-SNAPSHOT", "")),
-                        "$3");
-    }
-
-    private static String composeJavadocURL(String versionSnapshot, String versionTimestamp) {
-        return URLS.JAVADOC.get().replace("%tag-version-timestamp%", versionTimestamp).replace("%tag-version-snapshot%", versionSnapshot);
-    }
-
-    private static String getFileContent(String fileName) {
-        File file = new File(fileName);
-        Scanner reader = null;
-        try {
-            reader = new Scanner(file);
-        } catch (FileNotFoundException e) {
-            System.out.println("Error reading metadata file " + fileName + ": " + e.getMessage());
-            return null;
-        }
-        String line = reader.nextLine();
-        reader.close();
-        if (file.exists()) file.delete();
-        return line;
-    }
-
-    private static LinkedList<String> getVersions(String outFile) {
-        File metadata = new File(outFile);
-        Scanner reader = null;
-        try {
-            reader = new Scanner(metadata);
-        } catch (FileNotFoundException e) {
-            System.out.println("Error reading metadata file " + outFile + ": " + e.getMessage());
-            return null;
-        }
-
-        String[] buffer = reader.nextLine().replaceAll("(.*<versions>)(.*)(</versions>.*)", "$2")
-                .replace(" ", "\n")
-                .replaceAll("(<version>)(.*)(</version>)", "$2")
-                .split("\n");
-        LinkedList<String> versions = new LinkedList<>();
-        for (String s : buffer) {
-            if (s.isBlank()) continue;
-            versions.add(s);
-        }
-
-        reader.close();
-        if (metadata.exists()) metadata.delete();
-        return versions;
-    }
-    
 }
