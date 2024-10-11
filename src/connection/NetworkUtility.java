@@ -21,7 +21,6 @@ public class NetworkUtility {
             }
             reader.close();
             writer.close();
-            Log.logInfo("Successfully downloaded " + targetFile + " from " + remoteUrl);
             return true;
         } catch (IOException e) {
             Log.logError("Failed to download " + targetFile + " from " + remoteUrl + ": " + e.getMessage());

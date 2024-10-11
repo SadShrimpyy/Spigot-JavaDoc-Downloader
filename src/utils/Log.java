@@ -14,4 +14,15 @@ public class Log {
         System.out.println("[ERROR] " + String.join(" ", log));
     }
 
+    public static void auto(String... log) {
+        String auto = String.join(" ", log);
+        if (auto.toLowerCase().contains("failed")
+                || auto.toLowerCase().contains("error")) {
+            Log.logError(log);
+        } else if (auto.toLowerCase().contains("warning")) {
+            Log.logWarn(log);
+        } else {
+            Log.logInfo(log);
+        }
+    }
 }

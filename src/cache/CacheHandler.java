@@ -16,6 +16,16 @@ public class CacheHandler {
     private static String[][] versions;
     private static String[] cachedVersions;
 
+    public CacheHandler() {
+        try {
+            cachedVersions = new Scanner(cacheFile)
+                    .nextLine()
+                    .split(";");
+        } catch (FileNotFoundException e) {
+            cachedVersions = null;
+        }
+    }
+
     public static void persistCacheData(String[][] mat, int totVersions) {
         try {
             if (!cacheFile.exists())
@@ -34,16 +44,13 @@ public class CacheHandler {
         System.out.println("Cache file created successfully!");
     }
 
-    public static boolean fetchFromFile() {
-        //TODO: Extract in constructor
-        try {
-            cachedVersions = new Scanner(cacheFile)
-                    .nextLine()
-                    .split(";");
-        } catch (FileNotFoundException e) {
-            Log.logError("Failed to read " + FILES.CACHE_FILE_TXT.get() + ": " + e.getMessage());
-            return false;
+    public static boolean checkCachedJavadocs() {
+        if (cachedVersions == null) {
+            Log.logWarn("Failed to read " + FILES.CACHE_FILE_TXT.get() + ", cache invalidated");
+            FileHandler.checkAndDelete(FILES.CACHE_FILE_TXT.get());
+            return true;
         }
+
         Log.logInfo("Cache file exists, reading to avoid fetch existing javadocs...");
         versions = new String[cachedVersions.length][2];
         //ENDTODO
@@ -65,7 +72,7 @@ public class CacheHandler {
                 rebuildCachedHtmlComponent();
             }
         }
-        return true;
+        return false;
     }
 
     private static void rebuildCachedHtmlComponent() {
@@ -88,7 +95,7 @@ public class CacheHandler {
         }
     }
 
-    public static boolean exists() {
+    public static boolean cacheExists() {
         return cacheFile.exists();
     }
 }

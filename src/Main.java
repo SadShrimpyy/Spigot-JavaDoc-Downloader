@@ -18,17 +18,19 @@ public class Main {
     public static void main(String[] args) {
         NetworkUtility networkUtility = new NetworkUtility();
         JavaDoc javadoc = new JavaDoc();
-        boolean fetchJavadocs = true;
+        boolean fetchAllJavadocs = true;
 
-        if (CacheHandler.exists()) {
-            fetchJavadocs = CacheHandler.fetchFromFile();
+        if (CacheHandler.cacheExists()) {
+            fetchAllJavadocs = CacheHandler.checkCachedJavadocs();
         }
 
-        if (fetchJavadocs) {
-            Log.logError("Cache file didn't exists, fetching all javadocs");
-            if (!networkUtility.fetchFileFromUrl(URLS.METADATA.get(), FILES.MAVEN_METADATA_XML.get())) {
-                return;
-            }
+        if (fetchAllJavadocs) {
+            Log.logError("Couldn't find cache file, fetching all javadocs");
+            String log = networkUtility.fetchFileFromUrl(URLS.METADATA.get(), FILES.MAVEN_METADATA_XML.get())
+                ? "Successfully downloaded " + FILES.MAVEN_METADATA_XML.get() + " from " + URLS.METADATA.get()
+                : "Failed to download " + FILES.MAVEN_METADATA_XML.get() + " from " + URLS.METADATA.get();
+            Log.auto(log);
+            //TODO: Exit
         }
 
         //TODO: From here is all wrong
