@@ -41,7 +41,7 @@ public class JavaDoc {
                 }
                 zis.closeEntry();
             }
-            Log.logInfo("Extracting " + version + "javadoc to: " + outputDir);
+            Log.logInfo("Extracting " + version + " javadoc to: " + outputDir);
         } catch (IOException e) {
             Log.logError("Failed to extract " + jarFilePath + " : " + e.getMessage());
         }
@@ -70,20 +70,25 @@ public class JavaDoc {
         if (versions == null)
             return;
 
-        versions.forEach(snapshotVersion -> {
+        CacheHandler.clearVersions(versions.size());
+        createStylesheet();
+        for (String snapshotVersion : versions) {
             networkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
             String timestampVersion = FileHandler.parseVersionFromHtmlTag(snapshotVersion);
-            networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
+
+            boolean skip = networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
+            if (!skip) continue;
+
             FileHandler.checkAndDelete(snapshotVersion + ".html");
             extractJavadoc(timestampVersion + "-javadoc.jar", "javadocs\\" + timestampVersion + "-javadoc", snapshotVersion);
             FileHandler.checkAndDelete(timestampVersion + "-javadoc.jar");
-            CacheHandler.clearVersions(versions.size());
             CacheHandler.addSnapshotVersion(snapshotVersion);
             CacheHandler.addTimestampVersion(timestampVersion);
-        });
-        updateHtmlComponent(CacheHandler.getVersions(), CacheHandler.getTotalCachedVersions());
-        CacheHandler.writeCacheToFile();
-        createStylesheet();
+            CacheHandler.incrementTotalCachedVersions();
+
+            updateHtmlComponent(CacheHandler.getVersions(), CacheHandler.getTotalCachedVersions());
+            CacheHandler.writeCacheToFile();
+        }
 
         Desktop desktop = new Desktop();
         desktop.openHtml();

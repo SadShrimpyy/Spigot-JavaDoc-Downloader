@@ -23,12 +23,12 @@ public class NetworkUtility {
             writer.close();
             return true;
         } catch (IOException e) {
-            Log.logError("Failed to download " + targetFile + " from " + remoteUrl + ": " + e.getMessage());
+            Log.logWarn("Failed to download file " + targetFile + " from " + remoteUrl + ": " + e.getMessage());
             return false;
         }
     }
 
-    public void fetchJarFromUrl(String remoteUrl, String downloadJar) {
+    public boolean fetchJarFromUrl(String remoteUrl, String downloadJar) {
         URL url;
         try {
             url = new URL(remoteUrl);
@@ -36,8 +36,10 @@ public class NetworkUtility {
                 Files.copy(in, Path.of(downloadJar), StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (Exception e) {
-            Log.logError("Failed to download " + downloadJar + " from " + remoteUrl + ": " + e.getMessage());
+            Log.logWarn("Failed to download jar " + downloadJar + " from " + remoteUrl + ": " + e.getMessage());
+            return false;
         }
+        return true;
     }
 
 }
