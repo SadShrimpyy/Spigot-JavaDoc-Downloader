@@ -33,3 +33,4 @@ bin/
 javadocs/
 build/
 *.iml
+/cache.txt
