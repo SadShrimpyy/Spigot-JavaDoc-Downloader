@@ -38,6 +38,7 @@ public class CacheHandler {
                         .append(versions[i][VTag.TIMESTAMP.get()])
                         .append(";");
             }
+            writer.close();
         } catch (IOException e) {
             System.out.println("Error during the creation of " + FILES.CACHE_FILE_TXT.get() + ": " + e.getMessage());
             return;
