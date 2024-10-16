@@ -12,6 +12,7 @@ public class Desktop {
         File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
         try {
             if (isDesktopSupported()) {
+                Log.logInfo("Enjoy your local documentation! Opening default browser...");
                 getDesktop().open(indexHTML);
             } else {
                 Log.logError("Failed to open " + indexHTML.getName() + ": desktop is not supported on this platform.");
