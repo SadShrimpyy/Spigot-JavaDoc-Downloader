@@ -38,6 +38,7 @@ public class CacheHandler {
                         .append(versions[i][VTag.TIMESTAMP.get()])
                         .append(";");
             }
+            writer.close();
         } catch (IOException e) {
             System.out.println("Error during the creation of " + FILES.CACHE_FILE_TXT.get() + ": " + e.getMessage());
             return;
@@ -101,18 +102,20 @@ public class CacheHandler {
     }
 
     public static void clearVersions(int metadataVersions) {
-        totalCachedVersions = 0;
         versions = new String[metadataVersions][2];
+        totalCachedVersions = 0;
     }
 
     public static void addSnapshotVersion(String snapshotVersion) {
         versions[totalCachedVersions][VTag.SNAPSHOT.get()] = snapshotVersion;
-        totalCachedVersions++;
     }
 
     public static void addTimestampVersion(String timestampVersion) {
         versions[totalCachedVersions][VTag.TIMESTAMP.get()] = timestampVersion;
-        totalCachedVersions++;
+    }
+
+    public static void incrementTotalCachedVersions() {
+        totalCachedVersions++;;
     }
 
     public static String[][] getVersions() {
