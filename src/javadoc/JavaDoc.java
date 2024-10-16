@@ -16,13 +16,9 @@ import java.util.zip.*;
 
 public class JavaDoc {
 
-    private final NetworkUtility networkUtility;
+    private static final NetworkUtility networkUtility = new NetworkUtility();
 
-    public JavaDoc() {
-        this.networkUtility = new NetworkUtility();
-    }
-
-    public void extractJavadoc(String jarFilePath, String outputDir, String version) {
+    public static void extractJavadoc(String jarFilePath, String outputDir, String version) {
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(jarFilePath))) {
             ZipEntry zipEntry;
             while ((zipEntry = zis.getNextEntry()) != null) {
@@ -61,11 +57,11 @@ public class JavaDoc {
         FileHandler.checkAndDelete(javadocJar);
     }
 
-    public String composeJavadocURL(String versionSnapshot, String versionTimestamp) {
+    public static String composeJavadocURL(String versionSnapshot, String versionTimestamp) {
         return URLS.JAVADOC.get().replace("%tag-version-timestamp%", versionTimestamp).replace("%tag-version-snapshot%", versionSnapshot);
     }
 
-    public void generateAllJavadoc() {
+    public static void generateAllJavadoc() {
         LinkedList<String> versions = FileHandler.getVersions(FILES.MAVEN_METADATA_XML.get());
         if (versions == null)
             return;
