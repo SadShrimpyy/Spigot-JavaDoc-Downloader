@@ -24,9 +24,13 @@ public class JavaDoc {
             while ((zipEntry = zis.getNextEntry()) != null) {
                 File outputFile = new File(outputDir, zipEntry.getName());
                 if (zipEntry.isDirectory()) {
-                    outputFile.mkdirs();
+                    if (outputFile.mkdirs()) {
+                        Log.logInfo(outputFile.getName() + " Created");
+                    }
                 } else {
-                    new File(outputFile.getParent()).mkdirs();
+                    if (new File(outputFile.getParent()).mkdirs()) {
+                        Log.logInfo(outputFile.getParent() + " Created");
+                    }
                     try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outputFile))) {
                         byte[] buffer = new byte[1024];
                         int length;
@@ -48,7 +52,7 @@ public class JavaDoc {
         String outputLocation = "javadocs\\" + timestampVersion + "-javadoc";
 
         Log.logInfo("Fetching javadoc's version: " + timestampVersion);
-        networkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
+        NetworkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
         networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
         FileHandler.checkAndDelete(snapshotVersion + ".html");
 
@@ -67,7 +71,7 @@ public class JavaDoc {
             return;
 
         versions.forEach(snapshotVersion -> {
-            networkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
+            NetworkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
             String timestampVersion = FileHandler.parseVersionFromHtmlTag(snapshotVersion);
             networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
             FileHandler.checkAndDelete(snapshotVersion + ".html");
@@ -88,8 +92,7 @@ public class JavaDoc {
     private static void createStylesheet() {
         File stylesheetFile = new File(FILES.JAVADOCS_STYLESHEET_CSS.get());
         try {
-            if (!stylesheetFile.exists())
-                stylesheetFile.createNewFile();
+            prepareHtmlFile(stylesheetFile);
             FileWriter writer = new FileWriter(stylesheetFile);
             writer.write(HTML.STYLESHEET_CSS.get());
             writer.close();
@@ -99,23 +102,35 @@ public class JavaDoc {
         }
     }
 
-    private static void updateHtmlComponent(String[][] mat, int totVersions) {
-        File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
-        try {
-            if (!indexHTML.exists())
-                indexHTML.createNewFile();
-            FileWriter writer = new FileWriter(indexHTML);
-            writer.write(HTML.INDEX_COMPONENT.get());
-            for (int i = totVersions - 1; i >= 0 ; i--) {
-                writer.append(HTML.VERSION_COMPONENT.get()
-                        .replace("%tag-timestamp-version%", mat[i][VTag.TIMESTAMP.get()])
-                        .replace("%tag-snapshot-version%", mat[i][VTag.SNAPSHOT.get()])
-                        .replace("%tag-element-list%", Integer.toString(totVersions - i)));
+    private static void prepareHtmlFile(File stylesheetFile) throws IOException {
+        if (!stylesheetFile.exists()) {
+            if (stylesheetFile.createNewFile()) {
+                Log.logInfo(stylesheetFile.getName() + " Created");
             }
-            writer.append(HTML.FOOT_COMPONENT.get());
+        }
+    }
+
+    private static void updateHtmlComponent(String[][] mat, int totVersions) {
+        File indexHtmlFile = new File(FILES.JAVADOCS_INDEX_HTML.get());
+        try {
+            prepareHtmlFile(indexHtmlFile);
+            final FileWriter writer = getFileWriter(mat, totVersions, indexHtmlFile);
             writer.close();
         } catch (IOException e) {
-            Log.logWarn("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
+            Log.logWarn("Failed to update " + indexHtmlFile.getName() + ": " + e.getMessage());
         }
+    }
+
+    private static FileWriter getFileWriter(String[][] mat, int totVersions, File indexHTML) throws IOException {
+        FileWriter writer = new FileWriter(indexHTML);
+        writer.write(HTML.INDEX_COMPONENT.get());
+        for (int i = totVersions - 1; i >= 0 ; i--) {
+            writer.append(HTML.VERSION_COMPONENT.get()
+                    .replace("%tag-timestamp-version%", mat[i][VTag.TIMESTAMP.get()])
+                    .replace("%tag-snapshot-version%", mat[i][VTag.SNAPSHOT.get()])
+                    .replace("%tag-element-list%", Integer.toString(totVersions - i)));
+        }
+        writer.append(HTML.FOOT_COMPONENT.get());
+        return writer;
     }
 }
