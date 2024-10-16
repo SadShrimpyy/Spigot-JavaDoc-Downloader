@@ -10,7 +10,7 @@ import java.nio.file.StandardCopyOption;
 
 public class NetworkUtility {
 
-    public boolean fetchFileFromUrl(String remoteUrl, String targetFile) {
+    public static boolean fetchFileFromUrl(String remoteUrl, String targetFile) {
         try {
             URL url = new URL(remoteUrl);
             BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
