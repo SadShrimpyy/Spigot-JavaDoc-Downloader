@@ -7,6 +7,8 @@ import utils.FileHandler;
 import utils.Log;
 
 import java.io.*;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class CacheHandler {
@@ -14,18 +16,8 @@ public class CacheHandler {
     private static final JavaDoc javadoc = new JavaDoc();
     private static final File cacheFile = new File(FILES.CACHE_FILE_TXT.get());
     private static String[][] versions;
-    private static String[] scannedVersions;
     private static int totalCachedVersions;
-
-    public CacheHandler() {
-        try {
-            scannedVersions = new Scanner(cacheFile)
-                    .nextLine()
-                    .split(";");
-        } catch (FileNotFoundException e) {
-            scannedVersions = null;
-        }
-    }
+    private static HashMap<String, Boolean> needsJavadocFetch;
 
     public static void writeCacheToFile() {
         try {
@@ -47,6 +39,16 @@ public class CacheHandler {
     }
 
     public static boolean checkCachedJavadocs() {
+        String[] scannedVersions;
+        try {
+            scannedVersions = new Scanner(cacheFile)
+                    .nextLine()
+                    .split(";");
+            if (Arrays.toString(scannedVersions).trim().isEmpty())
+                scannedVersions = null;
+        } catch (FileNotFoundException e) {
+            scannedVersions = null;
+        }
         if (scannedVersions == null) {
             Log.logWarn("Failed to read " + FILES.CACHE_FILE_TXT.get() + ", cache invalidated");
             FileHandler.checkAndDelete(FILES.CACHE_FILE_TXT.get());
@@ -55,29 +57,29 @@ public class CacheHandler {
 
         Log.logInfo("Cache file exists, reading to avoid fetch existing javadocs...");
         versions = new String[scannedVersions.length][2];
-        //ENDTODO
-        boolean[] exists = new boolean[scannedVersions.length];
+        needsJavadocFetch = new HashMap<>(scannedVersions.length);
         for (int i = 0; i < scannedVersions.length; i++) {
             versions[i][VTag.SNAPSHOT.get()] = scannedVersions[i].split(",")[VTag.SNAPSHOT.get()];
             versions[i][VTag.TIMESTAMP.get()] = scannedVersions[i].split(",")[VTag.TIMESTAMP.get()];
-
             Log.logInfo("Found cached version: " + versions[i][VTag.SNAPSHOT.get()] + ", check if javadocs exists...");
-            exists[i] = FileHandler.exists(versions[i][VTag.TIMESTAMP.get()]);
-            String log = !exists[i]
+
+            boolean needFetch = !FileHandler.exists(versions[i][VTag.TIMESTAMP.get()]);
+            needsJavadocFetch.put(versions[i][VTag.SNAPSHOT.get()], needFetch);
+            String log = !needFetch
                     ? "Javadoc's version " + versions[i][VTag.TIMESTAMP.get()] + " does not exist: marked for fetch"
                     : "Javadoc's version " + versions[i][VTag.TIMESTAMP.get()] + " does exist: nothing to do";
             Log.logInfo(log);
         }
-        for (int i = 0; i < exists.length; i++) {
-            if (!exists[i]) {
+        for (int i = 0; i < needsJavadocFetch.size(); i++) {
+            if (needsJavadocFetch.get(versions[i][VTag.SNAPSHOT.get()])) {
                 javadoc.generateJavadoc(versions[i][VTag.SNAPSHOT.get()], versions[i][VTag.TIMESTAMP.get()]);
-                rebuildCachedHtmlComponent();
+                rebuildCachedHtmlComponent(scannedVersions);
             }
         }
         return false;
     }
 
-    private static void rebuildCachedHtmlComponent() {
+    private static void rebuildCachedHtmlComponent(String[] scannedVersions) {
         File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
         try {
             if (!indexHTML.exists())
@@ -95,6 +97,13 @@ public class CacheHandler {
         } catch (IOException e) {
             Log.logWarn("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
         }
+    }
+
+    public static boolean shouldFetchJavadoc(String timestampVersion) {
+        if (needsJavadocFetch.containsKey(timestampVersion)) {
+            return needsJavadocFetch.get(timestampVersion);
+        }
+        return false;
     }
 
     public static boolean cacheExists() {
