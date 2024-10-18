@@ -13,14 +13,7 @@ public class NetworkUtility {
     public static boolean fetchFileFromUrl(String remoteUrl, String targetFile) {
         try {
             URL url = new URL(remoteUrl);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
-            BufferedWriter writer = new BufferedWriter(new FileWriter(targetFile));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                writer.write(line);
-            }
-            reader.close();
-            writer.close();
+            downloadFileFromUrl(targetFile, url);
             return true;
         } catch (IOException e) {
             Log.logWarn("Failed to download file " + targetFile + " from " + remoteUrl + ": " + e.getMessage());
@@ -32,14 +25,18 @@ public class NetworkUtility {
         URL url;
         try {
             url = new URL(remoteUrl);
-            try(InputStream in = url.openStream()) {
-                Files.copy(in, Path.of(downloadJar), StandardCopyOption.REPLACE_EXISTING);
-            }
+            downloadFileFromUrl(downloadJar, url);
         } catch (Exception e) {
             Log.logWarn("Failed to download jar " + downloadJar + " from " + remoteUrl + ": " + e.getMessage());
             return false;
         }
         return true;
+    }
+
+    private static void downloadFileFromUrl(String targetFile, URL url) throws IOException {
+        try (InputStream in = url.openStream()) {
+            Files.copy(in, Path.of(targetFile), StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
 }
