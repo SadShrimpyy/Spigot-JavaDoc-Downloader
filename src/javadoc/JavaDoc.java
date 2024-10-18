@@ -48,11 +48,13 @@ public class JavaDoc {
         String javadocJar = timestampVersion + "-javadoc.jar";
         String outputLocation = "javadocs\\" + timestampVersion + "-javadoc";
 
+        // TODO: Use concurrency to fetch more files and jar at the same time
         Log.logInfo("Fetching javadoc's version: " + timestampVersion);
         NetworkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
         networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
         FileHandler.checkAndDelete(snapshotVersion + ".html");
 
+        // TODO: Use concurrency to extract more zip at the same time
         Log.logInfo("Extracting javadoc's " + timestampVersion + "-javadoc.jar");
         extractJavadoc(javadocJar, outputLocation, snapshotVersion);
         FileHandler.checkAndDelete(javadocJar);
@@ -73,6 +75,7 @@ public class JavaDoc {
                 continue;
             }
 
+            // TODO: Use concurrency to fetch more files at the same time
             NetworkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshot), snapshot + ".html");
             String timestamp = FileHandler.parseVersionFromHtmlTag(snapshot);
             if (!networkUtility.fetchJarFromUrl(composeJavadocURL(snapshot, timestamp), timestamp + "-javadoc.jar")) {
