@@ -18,6 +18,7 @@ public class JavaDoc {
 
     private static final NetworkUtility networkUtility = new NetworkUtility();
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void extractJavadoc(String jarFilePath, String outputDir, String version) {
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(jarFilePath))) {
             ZipEntry zipEntry;

@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicInteger;
 
+// TODO: I'd rather prefer to have a static field to be accessed than a static class!
 public class CacheHandler {
 
     private static final JavaDoc javadoc = new JavaDoc();
@@ -20,6 +21,7 @@ public class CacheHandler {
     private static int totalCachedVersions; // TODO: REMOVE
     private static HashMap<String, CacheVersion> needsJavadocFetch;
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void writeCacheToFile() {
         try {
             if (!cacheFile.exists()) {
@@ -84,6 +86,7 @@ public class CacheHandler {
         return false;
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     private static void rebuildCachedHtmlComponent(String[] snapshots) {
         File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
         try {
