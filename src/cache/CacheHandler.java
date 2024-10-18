@@ -21,6 +21,10 @@ public class CacheHandler {
     private static int totalCachedVersions; // TODO: REMOVE
     private static HashMap<String, CacheVersion> needsJavadocFetch;
 
+    static {
+        needsJavadocFetch = new HashMap<>();
+    }
+
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void writeCacheToFile() {
         try {
@@ -114,9 +118,6 @@ public class CacheHandler {
     }
 
     public static boolean requiresJavadocFetch(String timestampVersion) {
-        if (needsJavadocFetch == null) {
-            return true;
-        }
         if (needsJavadocFetch.containsKey(timestampVersion)) {
             return needsJavadocFetch.get(timestampVersion).requiresFetch();
         }
