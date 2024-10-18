@@ -24,9 +24,7 @@ public class JavaDoc {
             while ((zipEntry = zis.getNextEntry()) != null) {
                 File outputFile = new File(outputDir, zipEntry.getName());
                 if (zipEntry.isDirectory()) {
-                    if (outputFile.mkdirs()) {
-                        Log.logInfo(outputFile.getName() + " Created");
-                    }
+                    outputFile.mkdirs();
                 } else {
                     new File(outputFile.getParent()).mkdirs();
                     try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outputFile))) {
@@ -70,7 +68,7 @@ public class JavaDoc {
         CacheHandler.clearVersions(versions.size());
         createStylesheet();
         for (String snapshotVersion : versions) {
-            if (!CacheHandler.shouldFetchJavadoc(snapshotVersion)) {
+            if (!CacheHandler.requiresJavadocFetch(snapshotVersion)) {
                 continue;
             }
 
@@ -87,7 +85,7 @@ public class JavaDoc {
             CacheHandler.addTimestampVersion(timestampVersion);
             CacheHandler.incrementTotalCachedVersions();
 
-            updateHtmlComponent(CacheHandler.getVersions(), CacheHandler.getTotalCachedVersions());
+            updateHtmlComponent(CacheHandler.getVersionsMatrix(), CacheHandler.getTotalCachedVersions());
             CacheHandler.writeCacheToFile();
         }
 

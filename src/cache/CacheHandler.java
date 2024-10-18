@@ -10,24 +10,26 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CacheHandler {
 
     private static final JavaDoc javadoc = new JavaDoc();
     private static final File cacheFile = new File(FILES.CACHE_FILE_TXT.get());
-    private static String[][] versions;
-    private static int totalCachedVersions;
-    private static HashMap<String, Boolean> needsJavadocFetch;
+    private static String[][] versionsMatrix; // TODO: REMOVE
+    private static int totalCachedVersions; // TODO: REMOVE
+    private static HashMap<String, CacheVersion> needsJavadocFetch;
 
     public static void writeCacheToFile() {
         try {
-            if (!cacheFile.exists())
+            if (!cacheFile.exists()) {
                 cacheFile.createNewFile();
+            }
             FileWriter writer = new FileWriter(cacheFile);
             for (int i = 0; i < totalCachedVersions ; i++) {
-                writer.append(versions[i][VTag.SNAPSHOT.get()])
+                writer.append(versionsMatrix[i][VTag.SNAPSHOT.get()])
                         .append(",")
-                        .append(versions[i][VTag.TIMESTAMP.get()])
+                        .append(versionsMatrix[i][VTag.TIMESTAMP.get()])
                         .append(";");
             }
             writer.close();
@@ -56,42 +58,51 @@ public class CacheHandler {
         }
 
         Log.logInfo("Cache file exists, reading to avoid fetch existing javadocs...");
-        versions = new String[scannedVersions.length][2];
+        versionsMatrix = new String[scannedVersions.length][2];
         needsJavadocFetch = new HashMap<>(scannedVersions.length);
         for (int i = 0; i < scannedVersions.length; i++) {
-            versions[i][VTag.SNAPSHOT.get()] = scannedVersions[i].split(",")[VTag.SNAPSHOT.get()];
-            versions[i][VTag.TIMESTAMP.get()] = scannedVersions[i].split(",")[VTag.TIMESTAMP.get()];
-            Log.logInfo("Found cached version: " + versions[i][VTag.SNAPSHOT.get()] + ", check if javadocs exists...");
+            versionsMatrix[i][VTag.SNAPSHOT.get()] = scannedVersions[i].split(",")[VTag.SNAPSHOT.get()];
+            versionsMatrix[i][VTag.TIMESTAMP.get()] = scannedVersions[i].split(",")[VTag.TIMESTAMP.get()];
+            String sp = versionsMatrix[i][VTag.SNAPSHOT.get()];
+            String ts = versionsMatrix[i][VTag.TIMESTAMP.get()];
+            Log.logInfo("Found cached version: " + sp + ", check if javadocs exists...");
 
-            boolean needFetch = !FileHandler.exists(versions[i][VTag.TIMESTAMP.get()]);
-            needsJavadocFetch.put(versions[i][VTag.SNAPSHOT.get()], needFetch);
+            boolean needFetch = !FileHandler.exists(versionsMatrix[i][VTag.TIMESTAMP.get()]);
+            needsJavadocFetch.put(sp, new CacheVersion(ts, sp, needFetch));
             String log = !needFetch
-                    ? "Javadoc's version " + versions[i][VTag.TIMESTAMP.get()] + " does not exist: marked for fetch"
-                    : "Javadoc's version " + versions[i][VTag.TIMESTAMP.get()] + " does exist: nothing to do";
+                    ? "Javadoc's version " + versionsMatrix[i][VTag.TIMESTAMP.get()] + " does not exist: marked for fetch"
+                    : "Javadoc's version " + versionsMatrix[i][VTag.TIMESTAMP.get()] + " does exist: nothing to do";
             Log.logInfo(log);
         }
-        for (int i = 0; i < needsJavadocFetch.size(); i++) {
-            if (needsJavadocFetch.get(versions[i][VTag.SNAPSHOT.get()])) {
-                javadoc.generateJavadoc(versions[i][VTag.SNAPSHOT.get()], versions[i][VTag.TIMESTAMP.get()]);
-                rebuildCachedHtmlComponent(scannedVersions);
+
+        needsJavadocFetch.forEach((key, cacheVersion) -> {
+            if (cacheVersion.requiresFetch()) {
+                javadoc.generateJavadoc(cacheVersion.getSnapshotVersion(), cacheVersion.getTimestampVersion());
             }
-        }
+        });
+        rebuildCachedHtmlComponent(needsJavadocFetch.keySet().toArray(new String[0]));
         return false;
     }
 
-    private static void rebuildCachedHtmlComponent(String[] scannedVersions) {
+    private static void rebuildCachedHtmlComponent(String[] snapshots) {
         File indexHTML = new File(FILES.JAVADOCS_INDEX_HTML.get());
         try {
-            if (!indexHTML.exists())
+            if (!indexHTML.exists()) {
                 indexHTML.createNewFile();
+            }
             FileWriter writer = new FileWriter(indexHTML);
             writer.write(HTML.INDEX_COMPONENT.get());
-            for (int i = scannedVersions.length - 1; i >= 0 ; i--) {
-                writer.append(HTML.VERSION_COMPONENT.get()
-                        .replace("%tag-timestamp-version%", versions[i][VTag.TIMESTAMP.get()])
-                        .replace("%tag-snapshot-version%", versions[i][VTag.SNAPSHOT.get()])
-                        .replace("%tag-element-list%", Integer.toString(scannedVersions.length - i)));
-            }
+            AtomicInteger desc = new AtomicInteger(needsJavadocFetch.size());
+            needsJavadocFetch.forEach((key, cacheVersion) -> {
+                try {
+                    writer.append(HTML.VERSION_COMPONENT.get()
+                            .replace("%tag-timestamp-version%", cacheVersion.getTimestampVersion())
+                            .replace("%tag-snapshot-version%", cacheVersion.getSnapshotVersion())
+                            .replace("%tag-element-list%", Integer.toString(snapshots.length - desc.getAndDecrement())));
+                } catch (IOException e) {
+                    Log.logWarn("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
+                }
+            });
             writer.append(HTML.FOOT_COMPONENT.get());
             writer.close();
         } catch (IOException e) {
@@ -99,9 +110,12 @@ public class CacheHandler {
         }
     }
 
-    public static boolean shouldFetchJavadoc(String timestampVersion) {
+    public static boolean requiresJavadocFetch(String timestampVersion) {
+        if (needsJavadocFetch == null) {
+            return true;
+        }
         if (needsJavadocFetch.containsKey(timestampVersion)) {
-            return needsJavadocFetch.get(timestampVersion);
+            return needsJavadocFetch.get(timestampVersion).requiresFetch();
         }
         return false;
     }
@@ -111,24 +125,24 @@ public class CacheHandler {
     }
 
     public static void clearVersions(int metadataVersions) {
-        versions = new String[metadataVersions][2];
+        versionsMatrix = new String[metadataVersions][2];
         totalCachedVersions = 0;
     }
 
     public static void addSnapshotVersion(String snapshotVersion) {
-        versions[totalCachedVersions][VTag.SNAPSHOT.get()] = snapshotVersion;
+        versionsMatrix[totalCachedVersions][VTag.SNAPSHOT.get()] = snapshotVersion;
     }
 
     public static void addTimestampVersion(String timestampVersion) {
-        versions[totalCachedVersions][VTag.TIMESTAMP.get()] = timestampVersion;
+        versionsMatrix[totalCachedVersions][VTag.TIMESTAMP.get()] = timestampVersion;
     }
 
     public static void incrementTotalCachedVersions() {
-        totalCachedVersions++;;
+        totalCachedVersions++;
     }
 
-    public static String[][] getVersions() {
-        return versions;
+    public static String[][] getVersionsMatrix() {
+        return versionsMatrix;
     }
 
     public static int getTotalCachedVersions() {
