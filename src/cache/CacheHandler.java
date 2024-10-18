@@ -40,10 +40,10 @@ public class CacheHandler {
             }
             writer.close();
         } catch (IOException e) {
-            System.out.println("Error during the creation of " + FILES.CACHE_FILE_TXT.get() + ": " + e.getMessage());
+            Log.logWarn("Error during the creation of " + FILES.CACHE_FILE_TXT.get() + ": " + e.getMessage());
             return;
         }
-        System.out.println("Cache file created successfully!");
+        Log.logInfo("Cache file created successfully!");
     }
 
     public static boolean checkCachedJavadocs() {
