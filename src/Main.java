@@ -22,8 +22,6 @@ public class Main {
             Log.auto(log);
         }
 
-        // TODO: Populate the CacheHandler.needsJavadocFetch with all the missing versions and mark them as neededFetch
-        //       and remove the null check in CacheHandler.requiresJavadocFetch
         JavaDoc.generateAllJavadoc();
     }
 

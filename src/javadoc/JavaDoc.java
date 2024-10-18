@@ -63,30 +63,30 @@ public class JavaDoc {
     }
 
     public static void generateAllJavadoc() {
-        LinkedList<String> versions = FileHandler.getVersions(FILES.MAVEN_METADATA_XML.get());
-        assert versions != null;
+        LinkedList<String> snapshots = FileHandler.getVersions(FILES.MAVEN_METADATA_XML.get());
+        assert snapshots != null;
 
-        CacheHandler.clearVersions(versions.size());
+        CacheHandler.clearVersions(snapshots.size());
         createStylesheet();
-        for (String snapshotVersion : versions) {
-            if (!CacheHandler.requiresJavadocFetch(snapshotVersion)) {
+        for (String snapshot : snapshots) {
+            if (!CacheHandler.requiresJavadocFetch(snapshot)) {
                 continue;
             }
 
-            NetworkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
-            String timestampVersion = FileHandler.parseVersionFromHtmlTag(snapshotVersion);
-            if (!networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar")) {
+            NetworkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshot), snapshot + ".html");
+            String timestamp = FileHandler.parseVersionFromHtmlTag(snapshot);
+            if (!networkUtility.fetchJarFromUrl(composeJavadocURL(snapshot, timestamp), timestamp + "-javadoc.jar")) {
                 continue;
             }
 
-            FileHandler.checkAndDelete(snapshotVersion + ".html");
-            extractJavadoc(timestampVersion + "-javadoc.jar", "javadocs\\" + timestampVersion + "-javadoc", snapshotVersion);
-            FileHandler.checkAndDelete(timestampVersion + "-javadoc.jar");
-            CacheHandler.addSnapshotVersion(snapshotVersion);
-            CacheHandler.addTimestampVersion(timestampVersion);
+            FileHandler.checkAndDelete(snapshot + ".html");
+            extractJavadoc(timestamp + "-javadoc.jar", "javadocs\\" + timestamp + "-javadoc", snapshot);
+            FileHandler.checkAndDelete(timestamp + "-javadoc.jar");
+            CacheHandler.addSnapshotVersion(snapshot);
+            CacheHandler.addTimestampVersion(timestamp);
             CacheHandler.incrementTotalCachedVersions();
 
-            updateHtmlComponent(CacheHandler.getVersionsMatrix(), CacheHandler.getTotalCachedVersions());
+            updateHtmlComponent();
             CacheHandler.writeCacheToFile();
         }
 
@@ -124,18 +124,17 @@ public class JavaDoc {
         }
     }
 
-    private static void updateHtmlComponent(String[][] mat, int totVersions) {
+    private static void updateHtmlComponent() {
         File indexHtmlFile = new File(FILES.JAVADOCS_INDEX_HTML.get());
         try {
             prepareHtmlFile(indexHtmlFile);
-            final FileWriter writer = getFileWriter(mat, totVersions, indexHtmlFile);
-            writer.close();
+            writeIndexHTML(CacheHandler.getVersionsMatrix(), CacheHandler.getTotalCachedVersions(), indexHtmlFile).close();
         } catch (IOException e) {
             Log.logWarn("Failed to update " + indexHtmlFile.getName() + ": " + e.getMessage());
         }
     }
 
-    private static FileWriter getFileWriter(String[][] mat, int totVersions, File indexHTML) throws IOException {
+    private static FileWriter writeIndexHTML(String[][] mat, int totVersions, File indexHTML) throws IOException {
         FileWriter writer = new FileWriter(indexHTML);
         writer.write(HTML.INDEX_COMPONENT.get());
         for (int i = totVersions - 1; i >= 0 ; i--) {
