@@ -19,7 +19,7 @@ public class CacheHandler {
     private static final File cacheFile = new File(FILES.CACHE_FILE_TXT.get());
     private static String[][] versionsMatrix; // TODO: REMOVE
     private static int totalCachedVersions; // TODO: REMOVE
-    private static HashMap<String, CacheVersion> needsJavadocFetch;
+    private static HashMap<String, Version> needsJavadocFetch;
 
     static {
         needsJavadocFetch = new HashMap<>();
@@ -74,7 +74,11 @@ public class CacheHandler {
             Log.logInfo("Found cached version: " + sp + ", check if javadocs exists...");
 
             boolean needFetch = !FileHandler.exists(versionsMatrix[i][VTag.TIMESTAMP.get()]);
-            needsJavadocFetch.put(sp, new CacheVersion(ts, sp, needFetch));
+            needsJavadocFetch.put(sp, new VersionBuilder()
+                    .timestamp(ts)
+                    .snapshot(sp)
+                    .requiresFetch(needFetch)
+                    .build());
             String log = !needFetch
                     ? "Javadoc's version " + versionsMatrix[i][VTag.TIMESTAMP.get()] + " does not exist: marked for fetch"
                     : "Javadoc's version " + versionsMatrix[i][VTag.TIMESTAMP.get()] + " does exist: nothing to do";
@@ -83,7 +87,7 @@ public class CacheHandler {
 
         needsJavadocFetch.forEach((key, cacheVersion) -> {
             if (cacheVersion.requiresFetch()) {
-                javadoc.generateJavadoc(cacheVersion.getSnapshotVersion(), cacheVersion.getTimestampVersion());
+                javadoc.generateJavadoc(cacheVersion.getSnapshotStr(), cacheVersion.getTimestampStr());
             }
         });
         rebuildCachedHtmlComponent(needsJavadocFetch.keySet().toArray(new String[0]));
@@ -103,8 +107,8 @@ public class CacheHandler {
             needsJavadocFetch.forEach((key, cacheVersion) -> {
                 try {
                     writer.append(HTML.VERSION_COMPONENT.get()
-                            .replace("%tag-timestamp-version%", cacheVersion.getTimestampVersion())
-                            .replace("%tag-snapshot-version%", cacheVersion.getSnapshotVersion())
+                            .replace("%tag-timestamp-version%", cacheVersion.getTimestampStr())
+                            .replace("%tag-snapshot-version%", cacheVersion.getSnapshotStr())
                             .replace("%tag-element-list%", Integer.toString(snapshots.length - desc.getAndDecrement())));
                 } catch (IOException e) {
                     Log.logWarn("Failed to update " + indexHTML.getName() + ": " + e.getMessage());
