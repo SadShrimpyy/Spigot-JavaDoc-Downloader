@@ -28,9 +28,7 @@ public class JavaDoc {
                         Log.logInfo(outputFile.getName() + " Created");
                     }
                 } else {
-                    if (new File(outputFile.getParent()).mkdirs()) {
-                        Log.logInfo(outputFile.getParent() + " Created");
-                    }
+                    new File(outputFile.getParent()).mkdirs();
                     try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outputFile))) {
                         byte[] buffer = new byte[1024];
                         int length;
@@ -67,17 +65,20 @@ public class JavaDoc {
 
     public static void generateAllJavadoc() {
         LinkedList<String> versions = FileHandler.getVersions(FILES.MAVEN_METADATA_XML.get());
-        if (versions == null)
-            return;
+        assert versions != null;
 
         CacheHandler.clearVersions(versions.size());
         createStylesheet();
         for (String snapshotVersion : versions) {
+            if (!CacheHandler.shouldFetchJavadoc(snapshotVersion)) {
+                continue;
+            }
+
             NetworkUtility.fetchFileFromUrl(URLS.VERSION.get().replace("%tag-version-snapshot%", snapshotVersion), snapshotVersion + ".html");
             String timestampVersion = FileHandler.parseVersionFromHtmlTag(snapshotVersion);
-
-            boolean skip = networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar");
-            if (!skip) continue;
+            if (!networkUtility.fetchJarFromUrl(composeJavadocURL(snapshotVersion, timestampVersion), timestampVersion + "-javadoc.jar")) {
+                continue;
+            }
 
             FileHandler.checkAndDelete(snapshotVersion + ".html");
             extractJavadoc(timestampVersion + "-javadoc.jar", "javadocs\\" + timestampVersion + "-javadoc", snapshotVersion);
@@ -97,13 +98,14 @@ public class JavaDoc {
     private static void createStylesheet() {
         File stylesheetFile = new File(FILES.JAVADOCS_STYLESHEET_CSS.get());
         try {
+            prepareJavadocsDir(stylesheetFile.getParentFile());
             prepareHtmlFile(stylesheetFile);
             FileWriter writer = new FileWriter(stylesheetFile);
             writer.write(HTML.STYLESHEET_CSS.get());
             writer.close();
             Log.logInfo("Created stylesheet.css");
         } catch (IOException e) {
-            Log.logError("Failed to create " + stylesheetFile.getName() + e.getMessage());
+            Log.logError("Failed to create " + stylesheetFile.getName() + " " + e.getMessage());
         }
     }
 
@@ -111,6 +113,14 @@ public class JavaDoc {
         if (!stylesheetFile.exists()) {
             if (stylesheetFile.createNewFile()) {
                 Log.logInfo(stylesheetFile.getName() + " Created");
+            }
+        }
+    }
+
+    private static void prepareJavadocsDir(File dir) throws IOException {
+        if (!dir.exists()) {
+            if (dir.mkdirs()) {
+                Log.logInfo(dir.getPath() + " Created");
             }
         }
     }
