@@ -34,4 +34,4 @@ After downloading all the javadocs your default browser will open a new window t
     javac -d ../build Main.java && cd .. && java -cp build Main
 
 ## TODO List / Known issues
-1. As now if you run more than once, this tool will download again all the javadocs. If you have already, just skip!
+1. ~~As now if you run more than once, this tool will download again all the javadocs. If you have already, just skip!~~ DONE
