@@ -1,6 +1,6 @@
 # Spigot JavaDocs Downloader
 
-This is a simple Java 17 project that allows users to download all the JavaDocs for [Spigot](https://www.spigotmc.org/), a popular Minecraft server API.
+This is a simple Java 17 project that allows users to download all the JavaDocs for [Spigot](https://www.spigotmc.org/), a popular Minecraft server API. It's being done in rush, so don't complain too much about code quality <3
 
 This tool streamlines the process of obtaining the JavaDocs from the [Sonatype Nexus Repository](https://hub.spigotmc.org/nexus/#browse/browse:public), making it easier for developers to reference the documentation offline.
 
